@@ -3,21 +3,17 @@ type 'a t =
   | Two of 'a t * 'a * 'a t
   | Three of 'a t * 'a * 'a t * 'a * 'a t
 
-(* AF: The abstract type 'a t represents a 2-3 tree where:
-Nil represents an empty tree
-Two(l, v, r) is a 2-node with left subtree l, value v, and right subtree r
-Three(l, v1, m, v2, r) is a 3-node with left subtree l, values v1 and v2,
-middle subtree m, and right subtree r*)
+(* AF: The abstract type 'a t represents a 2-3 tree where: Nil represents an
+   empty tree Two(l, v, r) is a 2-node with left subtree l, value v, and right
+   subtree r Three(l, v1, m, v2, r) is a 3-node with left subtree l, values v1
+   and v2, middle subtree m, and right subtree r*)
 
-(*RI: For any 2-3 tree t:
-All values in the left subtree of a node are less than the node's value(s)
-All values in the right subtree of a node are greater than the node's value(s)
-For a Three node, all values in the middle subtree are between v1 and v2
-For a Three node, v1 < v2
-All leaves are at the same depth
-All siblings have the same height
-Every path through the tree has the same length
- *)
+(*RI: For any 2-3 tree t: All values in the left subtree of a node are less than
+  the node's value(s) All values in the right subtree of a node are greater than
+  the node's value(s) For a Three node, all values in the middle subtree are
+  between v1 and v2 For a Three node, v1 < v2 All leaves are at the same depth
+  All siblings have the same height Every path through the tree has the same
+  length *)
 let empty = Nil
 let is_empty t = t = Nil
 
@@ -32,45 +28,72 @@ let rec mem x tree =
       || (x > value1 && x < value2 && mem x middle)
       || mem x right
 
-let rec insert new_val tree =
-  let rec insert_helper new_val tree =
+type 'a has_grown =
+  | Not_Grown of 'a t
+  | Grown of 'a t * 'a * 'a t
+
+let rec insert x tree =
+  let rec insert_helper tree =
     match tree with
-    | Nil -> (Two (Nil, new_val, Nil), true)
+    | Nil -> Grown (Nil, x, Nil)
     | Two (left, value, right) ->
-        if new_val < value then
-          let new_left, grew = insert_helper new_val left in
-          if not grew then (Two (new_left, value, right), false)
-          else
-            match new_left with
-            | Two (left_left, left_val, left_right) ->
-                (Three (left_left, left_val, left_right, value, right), false)
-            | _ -> (Two (new_left, value, right), true)
-        else if new_val > value then
-          let new_right, grew = insert_helper new_val right in
-          if not grew then (Two (left, value, new_right), false)
-          else
-            match new_right with
-            | Two (right_left, right_val, right_right) ->
-                (Three (left, value, right_left, right_val, right_right), false)
-            | _ -> (Two (left, value, new_right), true)
-        else (Two (left, new_val, right), false)
-    | Three (left, value_1, middle, value_2, right) ->
-        if new_val < value_1 then
-          let new_left, grew = insert_helper new_val left in
-          if not grew then
-            (Three (new_left, value_1, middle, value_2, right), false)
-          else (Two (Two (new_left, value_1, middle), value_2, right), true)
-        else if new_val > value_1 && new_val < value_2 then
-          let new_middle, grew = insert_helper new_val middle in
-          if not grew then
-            (Three (left, value_1, new_middle, value_2, right), false)
-          else (Two (Two (left, value_1, new_middle), value_2, right), true)
-        else if new_val > value_2 then
-          let new_right, grew = insert_helper new_val right in
-          if not grew then
-            (Three (left, value_1, middle, value_2, new_right), false)
-          else (Two (left, value_1, Two (middle, value_2, new_right)), true)
-        else (Three (left, value_1, middle, value_2, right), false)
+        if x = value then Not_Grown (Two (left, value, right))
+        else if x < value then
+          let returnable =
+            match insert_helper left with
+            | Not_Grown t' -> Not_Grown (Two (t', value, right))
+            | Grown (left1, value1, left2) ->
+                Not_Grown (Three (left1, value1, left2, value, right))
+          in
+          returnable
+        else
+          let returnable =
+            match insert_helper right with
+            | Not_Grown t' -> Not_Grown (Two (left, value, t'))
+            | Grown (right1, value1, right2) ->
+                Not_Grown (Three (left, value, right1, value1, right2))
+          in
+          returnable
+    | Three (left, value1, middle, value2, right) ->
+        if x = value1 || x = value2 then
+          Not_Grown (Three (left, value1, middle, value2, right))
+        else if x < value1 then
+          let returnable =
+            match insert_helper left with
+            | Not_Grown t' ->
+                Not_Grown (Three (t', value1, middle, value2, right))
+            | Grown (left1, value, left2) ->
+                Grown
+                  ( Two (left1, value, left2),
+                    value1,
+                    Two (middle, value2, right) )
+          in
+          returnable
+        else if x > value2 then
+          let returnable =
+            match insert_helper right with
+            | Not_Grown t' ->
+                Not_Grown (Three (left, value1, middle, value2, t'))
+            | Grown (right1, value, right2) ->
+                Grown
+                  ( Two (left, value1, middle),
+                    value2,
+                    Two (right1, value, right2) )
+          in
+          returnable
+        else
+          let returnable =
+            match insert_helper middle with
+            | Not_Grown t' ->
+                Not_Grown (Three (left, value1, t', value2, right))
+            | Grown (middle1, value, middle2) ->
+                Grown
+                  ( Two (left, value1, middle1),
+                    value,
+                    Two (middle2, value2, right) )
+          in
+          returnable
   in
-  let final_tree, _ = insert_helper new_val tree in
-  final_tree
+  match insert_helper tree with
+  | Not_Grown t' -> t'
+  | Grown (left, value, right) -> Two (left, value, right)
