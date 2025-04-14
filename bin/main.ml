@@ -43,21 +43,38 @@ let measure_insert_time n num_samples =
   median (collect_samples 0 [])
 
 let () =
-  printf "N,Time\n";
+  printf "N,NLogN,Time\n";
   flush stdout;
 
-  let values = [
-    500000; 3026315; 5552631; 8078947; 10605263; 13131578; 15657894; 18184210;
-    20710526; 23236842; 25763157; 28289473; 30815789; 33342105; 35868421;
-    38394736; 40921052; 43447368; 45973684; 50000000
-  ]
-  
-
+  let values =
+    [
+      500000;
+      3026315;
+      5552631;
+      8078947;
+      10605263;
+      13131578;
+      15657894;
+      18184210;
+      20710526;
+      23236842;
+      25763157;
+      28289473;
+      30815789;
+      33342105;
+      35868421;
+      38394736;
+      40921052;
+      43447368;
+      45973684;
+      50000000;
+    ]
   in
 
   List.iter
     (fun n ->
       let time = measure_insert_time n 3 in
-      printf "%d,%g\n" n time;
+      let nlogn = float_of_int n *. log (float_of_int n) in
+      printf "%d,%.0f,%.6f\n" n nlogn time;
       flush stdout)
     values

@@ -37,10 +37,11 @@ let rec insert x tree =
     match tree with
     | Nil -> Grown (Nil, x, Nil)
     | Two (left, value, right) ->
-        if x = value then Not_Grown (Two (left, value, right))
+        if x = value then Not_Grown tree
         else if x < value then
           let returnable =
-            match insert_helper left with
+            let inserted = insert_helper left in
+            match inserted with
             | Not_Grown t' -> Not_Grown (Two (t', value, right))
             | Grown (left1, value1, left2) ->
                 Not_Grown (Three (left1, value1, left2, value, right))
@@ -48,18 +49,19 @@ let rec insert x tree =
           returnable
         else
           let returnable =
-            match insert_helper right with
+            let inserted = insert_helper right in
+            match inserted with
             | Not_Grown t' -> Not_Grown (Two (left, value, t'))
             | Grown (right1, value1, right2) ->
                 Not_Grown (Three (left, value, right1, value1, right2))
           in
           returnable
     | Three (left, value1, middle, value2, right) ->
-        if x = value1 || x = value2 then
-          Not_Grown (Three (left, value1, middle, value2, right))
+        if x = value1 || x = value2 then Not_Grown tree
         else if x < value1 then
           let returnable =
-            match insert_helper left with
+            let inserted = insert_helper left in
+            match inserted with
             | Not_Grown t' ->
                 Not_Grown (Three (t', value1, middle, value2, right))
             | Grown (left1, value, left2) ->
@@ -71,7 +73,8 @@ let rec insert x tree =
           returnable
         else if x > value2 then
           let returnable =
-            match insert_helper right with
+            let inserted = insert_helper right in
+            match inserted with
             | Not_Grown t' ->
                 Not_Grown (Three (left, value1, middle, value2, t'))
             | Grown (right1, value, right2) ->
@@ -83,7 +86,8 @@ let rec insert x tree =
           returnable
         else
           let returnable =
-            match insert_helper middle with
+            let inserted = insert_helper middle in
+            match inserted with
             | Not_Grown t' ->
                 Not_Grown (Three (left, value1, t', value2, right))
             | Grown (middle1, value, middle2) ->
